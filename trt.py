@@ -33,3 +33,18 @@ if __name__ == '__main__':
       cv2.imwrite("%s" %args.output , origin_img)
     if video:
       pred.detect_video(video, conf=0.1, end2end=args.end2end) # set 0 use a webcam
+
+    total_loop_counter = 1000
+    sum = 0.0
+    print("Start of benchmark for {} times".format(total_loop_counter))
+    for i in range(total_loop_counter):
+        prev_time = time.time()
+        result = pred.inference(img_path, conf=0.1, end2end=args.end2end)
+        curr_time = time.time()
+        exec_time = curr_time - prev_time
+        if i == 0: continue
+        sum += (1 / exec_time)
+        info = str(i) + " Total time:" + str(round(exec_time, 3)*1000) + "(ms), average FPS:" + str(round(sum / i, 2)) + ", FPS: " + str(
+            round((1 / exec_time), 1))
+        print(info)
+    print("End of benchmark")

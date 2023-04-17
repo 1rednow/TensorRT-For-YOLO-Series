@@ -106,8 +106,8 @@ class EngineBuilder:
 
         self.builder = trt.Builder(self.trt_logger)
         self.config = self.builder.create_builder_config()
-        self.config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace * (2 ** 30))
-        # self.config.max_workspace_size = workspace * (2 ** 30)  # Deprecation
+        #self.config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace * (2 ** 30))
+        self.config.max_workspace_size = workspace * (2 ** 30)  # Deprecation
 
         self.batch_size = None
         self.network = None
@@ -152,6 +152,7 @@ class EngineBuilder:
                 # slice boxes, obj_score, class_scores
                 strides = trt.Dims([1,1,1])
                 starts = trt.Dims([0,0,0])
+                print("previous_output.shape: {}".format(previous_output.shape))
                 bs, num_boxes, temp = previous_output.shape
                 shapes = trt.Dims([bs, num_boxes, 4])
                 # [0, 0, 0] [1, 8400, 4] [1, 1, 1]

@@ -4,6 +4,7 @@ import pycuda.driver as cuda
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import time
 
 class BaseEngine(object):
     def __init__(self, engine_path):
@@ -41,6 +42,10 @@ class BaseEngine(object):
                 self.inputs.append({'host': host_mem, 'device': device_mem})
             else:
                 self.outputs.append({'host': host_mem, 'device': device_mem})
+        self.preprocessing_time_total = 0.0
+        self.inference_time_total = 0.0
+        self.postprocess_time_total = 0.0
+        self.counter = 0
 
 
     def infer(self, img):
@@ -102,9 +107,26 @@ class BaseEngine(object):
         cv2.destroyAllWindows()
 
     def inference(self, img_path, conf=0.5, end2end=False):
+        prev_time = time.time()
         origin_img = cv2.imread(img_path)
         img, ratio = preproc(origin_img, self.imgsz, self.mean, self.std)
+        curr_time = time.time()
+        exec_time = curr_time - prev_time
+        if self.counter != 0:
+            self.preprocessing_time_total += (1 / exec_time)
+            info = "\t " + str(self.counter) + " Preprocess time:" + str(round(exec_time, 3)*1000) + "(ms), average FPS:" + str(round(self.preprocessing_time_total / self.counter, 2)) + ", FPS: " + str(
+                round((1 / exec_time), 1))
+            print(info)
+        prev_time = time.time()
         data = self.infer(img)
+        curr_time = time.time()
+        exec_time = curr_time - prev_time
+        if self.counter != 0:
+            self.inference_time_total += (1 / exec_time)
+            info = "\t " + str(self.counter) + " Inference time:" + str(round(exec_time, 3)*1000) + "(ms), average FPS:" + str(round(self.inference_time_total / self.counter, 2)) + ", FPS: " + str(
+                round((1 / exec_time), 1))
+            print(info)
+        prev_time = time.time()
         if end2end:
             num, final_boxes, final_scores, final_cls_inds = data
             final_boxes = np.reshape(final_boxes/ratio, (-1, 4))
@@ -118,6 +140,14 @@ class BaseEngine(object):
                                                              :4], dets[:, 4], dets[:, 5]
             origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
                              conf=conf, class_names=self.class_names)
+        curr_time = time.time()
+        exec_time = curr_time - prev_time
+        if self.counter != 0:
+            self.postprocess_time_total += (1 / exec_time)
+            info = "\t " + str(self.counter) + " Postprocess time:" + str(round(exec_time, 3)*1000) + "(ms), average FPS:" + str(round(self.postprocess_time_total / self.counter, 2)) + ", FPS: " + str(
+                round((1 / exec_time), 1))
+            print(info)
+        self.counter += 1
         return origin_img
 
     @staticmethod
